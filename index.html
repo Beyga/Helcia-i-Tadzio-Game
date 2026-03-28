@@ -330,11 +330,11 @@ html, body {
 <script>
 'use strict';
 
-/* ─── CABINET DOORS ───────────────────────────────────── */
+/* ─── CABINET DOORS (landing) ─────────────────────────── */
 (function () {
   const el = document.getElementById('cabTop');
-  const count = Math.ceil(window.innerWidth / 174) + 1;
-  for (let i = 0; i < count; i++) {
+  const n  = Math.ceil(window.innerWidth / 174) + 1;
+  for (let i = 0; i < n; i++) {
     const d = document.createElement('div');
     d.className = 'cab-door';
     el.appendChild(d);
@@ -347,78 +347,66 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-/* ─── BACKGROUND MUSIC ────────────────────────────────── */
+/* ─── MUSIC ───────────────────────────────────────────── */
 class Music {
   constructor() {
-    this.ctx   = null;
+    this.ctx    = null;
     this.active = false;
     this._timer = null;
     const R=0, C4=261.63, D4=293.66, E4=329.63, G4=392, A4=440, B4=493.88,
           Bb4=466.16, C5=523.25, D5=587.33, E5=659.25,
-          F5=698.46, G5=784, A5=880;
-    this.melody = [
+          F5=698.46,  G5=784,    A5=880;
+    this.melody   = [
       [E5,.18],[E5,.18],[R,.10],[E5,.18],[R,.10],[C5,.18],[E5,.36],[G5,.36],[G4,.36],
       [C5,.27],[G4,.18],[R,.18],[E4,.27],[A4,.18],[B4,.18],[Bb4,.18],[A4,.36],
       [G4,.24],[E5,.24],[G5,.24],[A5,.36],[F5,.18],[G5,.18],[R,.18],[E5,.36],[C5,.18],[D5,.18],[B4,.36],
       [C5,.27],[G4,.18],[R,.18],[E4,.27],[A4,.18],[B4,.18],[Bb4,.18],[A4,.36],
       [G4,.24],[E5,.24],[G5,.24],[A5,.36],[F5,.18],[G5,.18],[R,.18],[E5,.36],[C5,.18],[D5,.18],[B4,.36],
     ];
-    this.totalDur = this.melody.reduce((s,[,d]) => s + d, 0);
+    this.totalDur = this.melody.reduce((s,[,d]) => s+d, 0);
   }
   start() {
     if (this.ctx) return;
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.ctx   = new (window.AudioContext || window.webkitAudioContext)();
     this.active = true;
-    this._loop(this.ctx.currentTime + 0.05);
+    this._sched(this.ctx.currentTime + 0.05);
   }
-  _loop(t0) {
+  _sched(t0) {
     if (!this.active) return;
     let t = t0;
-    for (const [freq, dur] of this.melody) {
-      if (freq) {
-        this._note(freq,   t, dur * .88, 'square',   .07);
-        this._note(freq/2, t, dur * .45, 'triangle', .04);
-      }
-      t += dur;
+    for (const [f, d] of this.melody) {
+      if (f) { this._n(f, t, d*.88, 'square', .07); this._n(f/2, t, d*.45, 'triangle', .04); }
+      t += d;
     }
-    const wait = Math.max(0, (t0 + this.totalDur - this.ctx.currentTime - .6) * 1000);
-    this._timer = setTimeout(() => this._loop(t0 + this.totalDur), wait);
+    const wait = Math.max(0, (t0+this.totalDur - this.ctx.currentTime - .6)*1000);
+    this._timer = setTimeout(() => this._sched(t0+this.totalDur), wait);
   }
-  _note(freq, t, dur, type, vol) {
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
+  _n(freq, t, dur, type, vol) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
     o.connect(g); g.connect(this.ctx.destination);
     o.type = type; o.frequency.value = freq;
     g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.start(t); o.stop(t + dur + .02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.start(t); o.stop(t+dur+.02);
   }
-  sfx(freqs) {
+  sfx(notes) {   /* [{f, t, d}] */
     if (!this.ctx) return;
-    freqs.forEach(([freq, t, dur, vol=0.18]) => {
-      this._note(freq, this.ctx.currentTime + t, dur, 'square', vol);
-    });
-  }
-  stop() {
-    this.active = false;
-    clearTimeout(this._timer);
-    if (this.ctx) { this.ctx.close(); this.ctx = null; }
+    notes.forEach(({f, t, d}) => this._n(f, this.ctx.currentTime+t, d, 'square', 0.18));
   }
 }
 const music = new Music();
 
 /* ─── FOOD CATALOGUE ──────────────────────────────────── */
 const FOODS = [
-  { e:'🍎', pts:10 }, { e:'🥕', pts:5  }, { e:'🥔', pts:5  },
-  { e:'🍅', pts:10 }, { e:'🥦', pts:15 }, { e:'🧅', pts:3  },
-  { e:'🍋', pts:8  }, { e:'🥒', pts:7  }, { e:'🍄', pts:12 },
-  { e:'🍓', pts:15 }, { e:'🫐', pts:20 }, { e:'🍇', pts:18 },
-  { e:'🧁', pts:25 }, { e:'🍕', pts:30 }, { e:'🧀', pts:12 },
+  {e:'🍎',pts:10},{e:'🥕',pts:5},{e:'🥔',pts:5},{e:'🍅',pts:10},
+  {e:'🥦',pts:15},{e:'🧅',pts:3},{e:'🍋',pts:8},{e:'🥒',pts:7},
+  {e:'🍄',pts:12},{e:'🍓',pts:15},{e:'🫐',pts:20},{e:'🍇',pts:18},
+  {e:'🧁',pts:25},{e:'🍕',pts:30},{e:'🧀',pts:12},
 ];
 
-/* ─── CANVAS SETUP ────────────────────────────────────── */
+/* ─── CANVAS ──────────────────────────────────────────── */
 const canvas = document.getElementById('gameCanvas');
-const cx = canvas.getContext('2d');
+const cx     = canvas.getContext('2d');
 
 function resizeCanvas() {
   canvas.width  = window.innerWidth;
@@ -427,50 +415,70 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-/* ─── CHARACTER CONSTANTS ─────────────────────────────── */
-const CHAR_H   = 160;   // total visual height
-const HEAD_R   = 32;    // head radius
-const BODY_TOP = 80;    // px above floor where top of torso is
-const BODY_BOT = 30;    // px above floor where torso ends / legs split
-const ARM_Y    = 65;    // px above floor for arm midpoint
+/* ─── GAME ────────────────────────────────────────────── */
+/*
+  Kitchen viewed from above at a slight angle:
+  ┌───────────────────────────────────────────┐  ← back wall (cabinets)
+  │  depth ledge (top of counter visible)     │
+  ├──┬──────────────────────────────────────┬─┤
+  │L │                                      │R│  ← side counter strips
+  │  │    F L O O R   (play area)          │ │
+  │  │    food items & characters here     │ │
+  │  │                                      │ │
+  ├──┴──────────────────────────────────────┴─┤
+  │  bottom counter + HUD                     │
+  └───────────────────────────────────────────┘
+*/
+const CHAR_R = 18;   /* collision radius */
+const CHAR_VH = 46;  /* visual height — play area >= 10× this */
 
-/* ─── GAME CLASS ──────────────────────────────────────── */
 class Game {
   constructor() {
-    this.W       = canvas.width;
-    this.H       = canvas.height;
-    this.CAB_H   = Math.floor(this.H * 0.12);
-    this.FLOOR_Y = Math.floor(this.H * 0.82);
-    this.CTR_H   = Math.floor(this.H * 0.09);
-    this.MARGIN  = 55;
+    this._resize();
 
     this.helcia = {
-      name:'Helcia', x: this.W * 0.2,
-      speed:5, score:0, color:'#E0458A', isGirl:true,
-      walkPhase:0, facing:1, moving:false,
+      name:'Helcia', x: this.px1 + this.pw*0.18, y: this.py1 + this.ph*0.5,
+      vx:0, vy:0, speed:3.2, score:0,
+      color:'#E0458A', isGirl:true,
+      walkPhase:0, moving:false, facing:1,
     };
     this.tadzio = {
-      name:'Tadzio', x: this.W * 0.8,
-      speed:5, score:0, color:'#3A6FD8', isGirl:false,
-      walkPhase:0, facing:-1, moving:false,
+      name:'Tadzio', x: this.px1 + this.pw*0.82, y: this.py1 + this.ph*0.5,
+      vx:0, vy:0, speed:3.2, score:0,
+      color:'#3A6FD8', isGirl:false,
+      walkPhase:0, moving:false, facing:-1,
     };
 
-    this.foods      = [];
-    this.floats     = [];   // floating score texts
-    this.frame      = 0;
-    this.timeLeft   = 60;
-    this.running    = true;
-    this.keys       = {};
+    this.foods   = [];
+    this.floats  = [];
+    this.frame   = 0;
+    this.timeLeft = 60;
+    this.running  = true;
+    this.keys     = {};
 
-    const GAME_KEYS = new Set(['a','A','d','D','ArrowLeft','ArrowRight']);
-    this._onKey = (e) => {
-      if (GAME_KEYS.has(e.key)) e.preventDefault();
-      this.keys[e.key] = (e.type === 'keydown');
-    };
+    const GK = new Set(['w','W','a','A','s','S','d','D',
+                        'ArrowUp','ArrowDown','ArrowLeft','ArrowRight']);
+    this._onKey = (e) => { if (GK.has(e.key)) e.preventDefault(); this.keys[e.key] = (e.type==='keydown'); };
     window.addEventListener('keydown', this._onKey);
     window.addEventListener('keyup',   this._onKey);
 
     requestAnimationFrame(() => this._loop());
+  }
+
+  _resize() {
+    const W = canvas.width, H = canvas.height;
+    this.W   = W; this.H = H;
+    /* wall/border sizes */
+    this.bkH = Math.max(70, Math.floor(H * 0.13));  /* back wall height */
+    this.sW  = 52;                                    /* side wall width */
+    this.btH = Math.max(55, Math.floor(H * 0.09));   /* bottom counter height */
+    /* play area */
+    this.px1 = this.sW;
+    this.py1 = this.bkH;
+    this.px2 = W - this.sW;
+    this.py2 = H - this.btH;
+    this.pw  = this.px2 - this.px1;
+    this.ph  = this.py2 - this.py1;
   }
 
   destroy() {
@@ -481,256 +489,290 @@ class Game {
 
   _loop() {
     if (!this.running) return;
-    this.W = canvas.width;
-    this.H = canvas.height;
+    this._resize();
     this._update();
     this._draw();
     requestAnimationFrame(() => this._loop());
   }
 
-  /* ── UPDATE ───────────────────────────────────────────── */
+  /* ── UPDATE ── */
   _update() {
     this.frame++;
 
-    /* countdown */
+    /* timer */
     if (this.frame % 60 === 0) {
-      this.timeLeft = Math.max(0, this.timeLeft - 1);
+      this.timeLeft = Math.max(0, this.timeLeft-1);
       if (this.timeLeft === 0) { this._end(); return; }
     }
 
-    /* move players */
-    const hL = this.keys['a'] || this.keys['A'];
-    const hR = this.keys['d'] || this.keys['D'];
-    const tL = this.keys['ArrowLeft'];
-    const tR = this.keys['ArrowRight'];
-    this._movePlayer(this.helcia, hL, hR);
-    this._movePlayer(this.tadzio, tL, tR);
+    /* move */
+    this._move(this.helcia,
+      this.keys['a']||this.keys['A'], this.keys['d']||this.keys['D'],
+      this.keys['w']||this.keys['W'], this.keys['s']||this.keys['S']);
+    this._move(this.tadzio,
+      this.keys['ArrowLeft'], this.keys['ArrowRight'],
+      this.keys['ArrowUp'],   this.keys['ArrowDown']);
 
-    /* spawn food — every 2 s (120 frames), faster after 30 s */
-    const spawnRate = Math.max(70, 120 - Math.floor((60 - this.timeLeft) / 10) * 10);
-    if (this.frame % spawnRate === 0 && this.foods.length < 6) {
-      this._spawnFood();
-    }
+    /* spawn food every ~2.2 s (faster over time) */
+    const rate = Math.max(70, 130 - Math.floor((60-this.timeLeft)/8)*8);
+    if (this.frame % rate === 0 && this.foods.length < 7) this._spawn();
 
-    /* update food items */
-    const PICKUP_R = 52;
+    /* food pickup */
+    const PR = CHAR_R + 22;
     for (const f of this.foods) {
-      if (f.dying) { f.alpha = Math.max(0, f.alpha - 0.08); continue; }
+      if (f.dying) { f.alpha = Math.max(0, f.alpha - 0.1); continue; }
+      if (f.alpha < 1) f.alpha = Math.min(1, f.alpha + 0.07);
       f.life--;
-      /* fade in */
-      if (f.alpha < 1) f.alpha = Math.min(1, f.alpha + 0.06);
-      /* check pickup — whoever is closest and within range */
-      let closest = null, minD = PICKUP_R;
+
+      /* who is close enough? */
+      let winner = null, best = PR;
       for (const p of [this.helcia, this.tadzio]) {
-        const d = Math.abs(p.x - f.x);
-        if (d < minD) { minD = d; closest = p; }
+        const d = Math.hypot(p.x - f.x, p.y - f.y);
+        if (d < best) { best = d; winner = p; }
       }
-      if (closest) {
+      if (winner) {
         f.dying = true;
-        closest.score += f.pts;
+        winner.score += f.pts;
         this._jingle(f.pts);
         this.floats.push({
-          text: `+${f.pts}`,
-          x: f.x, y: this.FLOOR_Y - 90,
-          vy: -1.4, alpha: 1,
-          color: closest.color,
-          size: Math.min(36, 26 + f.pts / 4),
+          text:`+${f.pts}`, x:f.x, y:f.y-30,
+          vy:-1.3, alpha:1, color:winner.color,
+          sz: Math.min(34, 22 + f.pts/4),
         });
       }
-      /* expire */
       if (f.life <= 0) f.dying = true;
     }
-    this.foods = this.foods.filter(f => f.alpha > 0);
-
-    /* update floating texts */
-    for (const ft of this.floats) { ft.y += ft.vy; ft.alpha -= 0.016; }
-    this.floats = this.floats.filter(ft => ft.alpha > 0);
+    this.foods  = this.foods.filter(f => f.alpha > 0);
+    this.floats = this.floats.filter(ft => { ft.y += ft.vy; ft.alpha -= 0.017; return ft.alpha > 0; });
   }
 
-  _movePlayer(p, left, right) {
-    p.moving = !!(left || right);
-    if (left)  { p.x -= p.speed; p.facing = -1; }
-    if (right) { p.x += p.speed; p.facing =  1; }
-    if (p.moving) p.walkPhase += 0.2;
-    p.x = Math.max(this.MARGIN, Math.min(this.W - this.MARGIN, p.x));
+  _move(p, left, right, up, down) {
+    let vx = 0, vy = 0;
+    if (left)  { vx = -1; p.facing = -1; }
+    if (right) { vx =  1; p.facing =  1; }
+    if (up)    vy = -1;
+    if (down)  vy =  1;
+    /* diagonal normalisation */
+    if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
+    p.vx = vx * p.speed;
+    p.vy = vy * p.speed;
+    p.moving = !!(vx || vy);
+    if (p.moving) p.walkPhase += 0.22;
+    p.x = Math.max(this.px1 + CHAR_R, Math.min(this.px2 - CHAR_R, p.x + p.vx));
+    p.y = Math.max(this.py1 + CHAR_R, Math.min(this.py2 - CHAR_R, p.y + p.vy));
   }
 
-  _spawnFood() {
-    const item = FOODS[Math.floor(Math.random() * FOODS.length)];
-    const margin = this.MARGIN + 30;
+  _spawn() {
+    const item = FOODS[Math.floor(Math.random()*FOODS.length)];
+    const pad  = 50;
     this.foods.push({
-      x: margin + Math.random() * (this.W - margin * 2),
+      x: this.px1 + pad + Math.random()*(this.pw - pad*2),
+      y: this.py1 + pad + Math.random()*(this.ph - pad*2),
       emoji: item.e, pts: item.pts,
-      life: 300,   /* 5 seconds at 60 fps */
-      alpha: 0,    /* fade in */
-      dying: false,
+      life: 320, alpha: 0, dying: false,
     });
   }
 
-  /* 3-note pickup jingle, pitch scales with item value */
   _jingle(pts) {
-    const base = pts >= 20 ? 784 : pts >= 12 ? 659 : 523;
-    music.sfx([
-      [base,       0.00, 0.10],
-      [base * 1.26,0.09, 0.10],
-      [base * 1.50,0.18, 0.15],
-    ]);
+    const b = pts>=20 ? 784 : pts>=12 ? 659 : 523;
+    music.sfx([{f:b,t:0,d:0.10},{f:b*1.26,t:0.09,d:0.10},{f:b*1.50,t:0.18,d:0.14}]);
   }
 
   _end() {
     this.running = false;
     const h = this.helcia, t = this.tadzio;
-    const title = h.score > t.score ? '🎉 Helcia wygrywa! 🎉'
-                : t.score > h.score ? '🎉 Tadzio wygrywa! 🎉'
-                :                     '🤝 Remis! Oboje świetni! 🤝';
+    const title = h.score>t.score ? '🎉 Helcia wygrywa! 🎉'
+                : t.score>h.score ? '🎉 Tadzio wygrywa! 🎉'
+                :                   '🤝 Remis! Oboje świetni! 🤝';
     document.getElementById('resultTitle').textContent = title;
     document.getElementById('resultScores').innerHTML =
       `👧 Helcia: <strong>${h.score}</strong> pkt &nbsp;|&nbsp; Tadzio: <strong>${t.score}</strong> pkt 👦`;
     setTimeout(() => showScreen('result-screen'), 700);
   }
 
-  /* ── DRAW ─────────────────────────────────────────────── */
+  /* ── DRAW ── */
   _draw() {
     cx.clearRect(0, 0, this.W, this.H);
-    this._drawBg();
+    this._drawKitchen();
     this._drawFoods();
-    this._drawPlayer(this.helcia);
-    this._drawPlayer(this.tadzio);
+    /* draw players sorted by Y so the lower one renders on top */
+    [this.helcia, this.tadzio]
+      .sort((a,b) => a.y - b.y)
+      .forEach(p => this._drawChar(p));
     this._drawFloats();
     this._drawHUD();
   }
 
-  /* ── KITCHEN BACKGROUND ───────────────────────────────── */
-  _drawBg() {
-    const { W, H, CAB_H, FLOOR_Y, CTR_H } = this;
+  /* ── KITCHEN BACKGROUND ── */
+  _drawKitchen() {
+    const { W, H, bkH, sW, btH, px1, py1, px2, py2, pw, ph } = this;
 
-    /* wall tiles */
-    const ts = 68;
-    for (let tx = 0; tx < W; tx += ts)
-      for (let ty = CAB_H; ty < FLOOR_Y; ty += ts) {
-        const r = Math.floor((ty - CAB_H) / ts), col = Math.floor(tx / ts);
-        cx.fillStyle = (r + col) % 2 === 0 ? '#F8EDCF' : '#EDE0B8';
-        cx.fillRect(tx, ty, ts, ts);
-        cx.strokeStyle = '#D4C090'; cx.lineWidth = 0.7;
-        cx.strokeRect(tx, ty, ts, ts);
+    /* ── floor tiles ── */
+    const tSzFar  = 54;   /* tile size at far end (top of play area) */
+    const tSzNear = 72;   /* tile size at near end (bottom of play area) */
+    /* We draw a simple rectilinear grid but scale tile size with y for perspective hint */
+    const cols = Math.ceil(pw / tSzFar) + 2;
+    /* just draw flat tiles with perspective suggested by gradient overlay */
+    for (let col = 0; col < cols; col++) {
+      for (let row = 0; ; row++) {
+        const ty = py1 + row * tSzFar;
+        if (ty > py2) break;
+        const tx = px1 + col * tSzFar;
+        if (tx > px2) break;
+        const even = (row + col) % 2 === 0;
+        cx.fillStyle = even ? '#F5EDD0' : '#E0D4A8';
+        cx.fillRect(Math.max(px1,tx), Math.max(py1,ty),
+                    Math.min(tSzFar, px2-tx), Math.min(tSzFar, py2-ty));
+        cx.strokeStyle = '#C8B870'; cx.lineWidth = 0.6;
+        cx.strokeRect(Math.max(px1,tx), Math.max(py1,ty),
+                      Math.min(tSzFar, px2-tx), Math.min(tSzFar, py2-ty));
       }
+    }
 
-    /* floor — checkered */
-    const fs = 72;
-    for (let tx = 0; tx < W; tx += fs)
-      for (let ty = FLOOR_Y; ty < H - CTR_H; ty += fs) {
-        const r = Math.floor((ty - FLOOR_Y) / fs), col = Math.floor(tx / fs);
-        cx.fillStyle = (r + col) % 2 === 0 ? '#F0E8C0' : '#CEC080';
-        cx.fillRect(tx, ty, fs, fs);
-        cx.strokeStyle = '#B8A860'; cx.lineWidth = 0.5;
-        cx.strokeRect(tx, ty, fs, fs);
-      }
+    /* perspective gradient overlay (darker at top = further away) */
+    const pfg = cx.createLinearGradient(0, py1, 0, py2);
+    pfg.addColorStop(0,   'rgba(40,20,0,0.22)');
+    pfg.addColorStop(0.5, 'rgba(40,20,0,0.06)');
+    pfg.addColorStop(1,   'rgba(255,240,200,0.04)');
+    cx.fillStyle = pfg;
+    cx.fillRect(px1, py1, pw, ph);
 
-    /* baseboard */
-    cx.fillStyle = '#7A5030';
-    cx.fillRect(0, FLOOR_Y - 8, W, 8);
+    /* floor edge highlight at bottom (nearest to viewer) */
+    cx.fillStyle = 'rgba(255,240,180,0.18)';
+    cx.fillRect(px1, py2-18, pw, 18);
 
-    /* cabinets top */
-    cx.fillStyle = '#5A3010';
-    cx.fillRect(0, 0, W, CAB_H);
-    const sg = cx.createLinearGradient(0, CAB_H - 12, 0, CAB_H + 12);
-    sg.addColorStop(0, 'rgba(0,0,0,.35)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-    cx.fillStyle = sg; cx.fillRect(0, CAB_H - 10, W, 22);
+    /* ── back wall ── */
+    /* wall face */
+    const wallG = cx.createLinearGradient(0, 0, 0, bkH);
+    wallG.addColorStop(0, '#4A2808');
+    wallG.addColorStop(0.7, '#7B4A25');
+    wallG.addColorStop(1,   '#9B6B4A');
+    cx.fillStyle = wallG;
+    cx.fillRect(0, 0, W, bkH);
 
-    const dW = Math.min(160, W / 7), gap = 16, total = dW + gap;
-    const startX = (W % total) / 2;
-    const count  = Math.ceil(W / total) + 1;
-    for (let i = 0; i < count; i++) {
-      const dx = startX + i * total - gap / 2, dy = 8, dh = CAB_H - 16;
-      const dg = cx.createLinearGradient(dx, dy, dx, dy + dh);
+    /* cabinet doors on back wall */
+    const dW = Math.min(150, W / 7), gap = 14, tot = dW + gap;
+    const sx = (W % tot) / 2;
+    for (let i = 0; i < Math.ceil(W/tot)+1; i++) {
+      const dx = sx + i*tot - gap/2, dy = 7, dh = bkH - 20;
+      const dg = cx.createLinearGradient(dx, dy, dx, dy+dh);
       dg.addColorStop(0, '#C08050'); dg.addColorStop(.4, '#9B6B40'); dg.addColorStop(1, '#7A4828');
-      cx.fillStyle = dg; this._rr(dx, dy, dW, dh, 6); cx.fill();
-      cx.strokeStyle = '#4A2408'; cx.lineWidth = 2.5;
-      this._rr(dx, dy, dW, dh, 6); cx.stroke();
-      cx.strokeStyle = 'rgba(255,255,255,.18)'; cx.lineWidth = 1;
-      this._rr(dx + 5, dy + 5, dW - 10, dh - 10, 4); cx.stroke();
+      cx.fillStyle = dg; this._rr(dx, dy, dW, dh, 5); cx.fill();
+      cx.strokeStyle = '#3A1A05'; cx.lineWidth = 2;
+      this._rr(dx, dy, dW, dh, 5); cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,.15)'; cx.lineWidth = 1;
+      this._rr(dx+5, dy+5, dW-10, dh-10, 4); cx.stroke();
+      /* handle */
       cx.fillStyle = '#D4A050';
-      this._rr(dx + dW / 2 - 18, dy + dh / 2 - 5, 36, 10, 5); cx.fill();
+      this._rr(dx+dW/2-16, dy+dh/2-5, 32, 10, 5); cx.fill();
       cx.strokeStyle = '#8B5820'; cx.lineWidth = 1.5; cx.stroke();
     }
 
-    /* counter bottom */
-    const cy = H - CTR_H;
-    const cg = cx.createLinearGradient(0, cy, 0, H);
-    cg.addColorStop(0, '#A07048'); cg.addColorStop(1, '#6B4020');
-    cx.fillStyle = cg; cx.fillRect(0, cy, W, CTR_H);
-    cx.fillStyle = '#4A2808'; cx.fillRect(0, cy, W, 7);
-    cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(0, cy + 7, W, 4);
-    const items = ['🍳','🥘','🍲','☕','🥄','🍴','🧂'];
-    const esz = Math.min(CTR_H * 0.65, 44);
-    cx.font = `${esz}px serif`; cx.textBaseline = 'middle'; cx.textAlign = 'center';
-    items.forEach((it, i) => cx.fillText(it, (W / (items.length + 1)) * (i + 1), cy + CTR_H / 2));
+    /* depth ledge — top surface of back counter (perspective angle cue) */
+    const ledgeH = 14;
+    const ledgeG = cx.createLinearGradient(0, bkH, 0, bkH+ledgeH);
+    ledgeG.addColorStop(0, '#C09060');
+    ledgeG.addColorStop(1, '#7A5030');
+    cx.fillStyle = ledgeG;
+    cx.fillRect(0, bkH, W, ledgeH);
+    cx.fillStyle = 'rgba(255,255,255,0.2)';
+    cx.fillRect(0, bkH, W, 3);
+    cx.fillStyle = 'rgba(0,0,0,0.25)';
+    cx.fillRect(0, bkH+ledgeH-3, W, 3);
 
-    /* side accents */
-    cx.fillStyle = '#DDDDE4'; cx.fillRect(0, CAB_H, 18, FLOOR_Y - CAB_H);
-    cx.fillStyle = '#DDDDE4'; cx.fillRect(W - 18, CAB_H, 18, FLOOR_Y - CAB_H);
-    const hh = (FLOOR_Y - CAB_H - 32) / 2;
+    /* ── side counters ── */
+    for (const sx2 of [0, px2]) {
+      const cg = cx.createLinearGradient(sx2, 0, sx2+sW, 0);
+      if (sx2 === 0) { cg.addColorStop(0,'#4A2808'); cg.addColorStop(1,'#8B5830'); }
+      else           { cg.addColorStop(0,'#8B5830'); cg.addColorStop(1,'#4A2808'); }
+      cx.fillStyle = cg;
+      cx.fillRect(sx2, bkH+ledgeH, sW, py2 - bkH - ledgeH);
+      /* depth edge (top surface of side counter) */
+      const eW = 12;
+      const eg = cx.createLinearGradient(sx2 === 0 ? sx2+sW-eW : sx2, 0,
+                                         sx2 === 0 ? sx2+sW     : sx2+eW, 0);
+      eg.addColorStop(0, sx2===0?'#A07040':'#7A5030');
+      eg.addColorStop(1, sx2===0?'#7A5030':'#A07040');
+      cx.fillStyle = eg;
+      cx.fillRect(sx2===0 ? sx2+sW-eW : sx2, bkH+ledgeH, eW, py2-bkH-ledgeH);
+    }
+
+    /* ── bottom counter ── */
+    const bcG = cx.createLinearGradient(0, py2, 0, H);
+    bcG.addColorStop(0, '#A07048'); bcG.addColorStop(1, '#6B4020');
+    cx.fillStyle = bcG; cx.fillRect(0, py2, W, btH);
+    cx.fillStyle = '#4A2808'; cx.fillRect(0, py2, W, 6);
+    cx.fillStyle = 'rgba(255,255,255,.15)'; cx.fillRect(0, py2+6, W, 3);
+
+    /* counter items */
+    const ctItems = ['🍳','🥘','🍲','☕','🥄','🍴','🧂'];
+    const esz = Math.min(btH*0.58, 38);
+    cx.font = `${esz}px serif`; cx.textBaseline='middle'; cx.textAlign='center';
+    ctItems.forEach((it,i) => cx.fillText(it, (W/(ctItems.length+1))*(i+1), py2+btH/2));
+
+    /* corner decorations */
+    /* stove top-left */
+    cx.fillStyle = '#555';
+    this._rr(px1+8, py1+bkH*0.05+ledgeH, 80, 70, 6); cx.fill();
+    cx.fillStyle = '#444'; this._rr(px1+13, py1+bkH*0.05+ledgeH+5, 70, 60, 4); cx.fill();
+    ['#777','#777','#777','#777'].forEach((_,i) => {
+      cx.fillStyle = '#888';
+      cx.beginPath(); cx.arc(px1+28+((i%2)*34), py1+ledgeH+18+Math.floor(i/2)*30, 10, 0, Math.PI*2); cx.fill();
+      cx.fillStyle = '#555'; cx.beginPath(); cx.arc(px1+28+((i%2)*34), py1+ledgeH+18+Math.floor(i/2)*30, 6, 0, Math.PI*2); cx.fill();
+    });
+
+    /* fridge top-right */
+    cx.fillStyle = '#DDDDE4';
+    cx.fillRect(px2-78, py1+ledgeH, 70, 90);
     cx.fillStyle = '#CCC';
-    cx.fillRect(2, CAB_H + 16, 14, hh - 4);
-    cx.fillRect(2, CAB_H + 16 + hh, 14, hh - 4);
+    cx.fillRect(px2-74, py1+ledgeH+8, 62, 38);
+    cx.fillRect(px2-74, py1+ledgeH+50, 62, 34);
+    cx.fillStyle = '#999';
+    cx.beginPath(); cx.arc(px2-18, py1+ledgeH+28, 4, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.arc(px2-18, py1+ledgeH+68, 4, 0, Math.PI*2); cx.fill();
   }
 
-  /* ── FOOD ITEMS ON FLOOR ──────────────────────────────── */
+  /* ── FOOD ITEMS ── */
   _drawFoods() {
     for (const f of this.foods) {
       if (f.alpha <= 0) continue;
-      cx.save();
-      cx.globalAlpha = f.alpha;
-
-      const fx = f.x;
-      const fy = this.FLOOR_Y - 4;  /* sit on floor */
+      cx.save(); cx.globalAlpha = f.alpha;
 
       /* shadow */
       cx.fillStyle = 'rgba(0,0,0,0.18)';
-      cx.beginPath();
-      cx.ellipse(fx, fy + 2, 26, 8, 0, 0, Math.PI * 2);
-      cx.fill();
+      cx.beginPath(); cx.ellipse(f.x, f.y+18, 20, 7, 0, 0, Math.PI*2); cx.fill();
 
-      /* timer arc — green → orange → red */
-      const lifePct = Math.max(0, f.life / 300);
-      const arcColor = lifePct > 0.5 ? '#4CAF50' : lifePct > 0.25 ? '#FF9800' : '#F44336';
-      cx.strokeStyle = arcColor;
-      cx.lineWidth   = 5;
-      cx.lineCap     = 'butt';
+      /* timer arc */
+      const pct = Math.max(0, f.life/320);
+      cx.strokeStyle = pct>.5?'#4CAF50':pct>.25?'#FF9800':'#F44336';
+      cx.lineWidth = 4; cx.lineCap = 'butt';
       cx.beginPath();
-      cx.arc(fx, fy - 26, 28, -Math.PI / 2, -Math.PI / 2 + lifePct * Math.PI * 2);
+      cx.arc(f.x, f.y, 24, -Math.PI/2, -Math.PI/2 + pct*Math.PI*2);
       cx.stroke();
 
       /* emoji */
-      cx.font = '40px serif';
-      cx.textAlign   = 'center';
-      cx.textBaseline = 'bottom';
-      cx.fillText(f.emoji, fx, fy);
+      cx.font = '32px serif';
+      cx.textAlign='center'; cx.textBaseline='middle';
+      cx.fillText(f.emoji, f.x, f.y+2);
 
       /* point badge */
-      cx.fillStyle = '#FFD700';
-      cx.strokeStyle = '#B8860B';
-      cx.lineWidth = 2;
-      cx.font = 'bold 13px "Comic Sans MS", cursive';
+      cx.font = 'bold 12px "Comic Sans MS",cursive';
+      cx.fillStyle = '#FFD700'; cx.strokeStyle = '#8B6000'; cx.lineWidth = 2;
       cx.textBaseline = 'bottom';
-      cx.strokeText(`+${f.pts}`, fx, fy - 58);
-      cx.fillText(`+${f.pts}`, fx, fy - 58);
+      cx.strokeText(`+${f.pts}`, f.x, f.y-26);
+      cx.fillText(`+${f.pts}`, f.x, f.y-26);
 
       cx.restore();
     }
   }
 
-  /* ── FLOATING SCORE TEXTS ─────────────────────────────── */
+  /* ── FLOATING TEXTS ── */
   _drawFloats() {
     for (const ft of this.floats) {
-      cx.save();
-      cx.globalAlpha = ft.alpha;
-      cx.font = `bold ${ft.size}px "Comic Sans MS", cursive`;
-      cx.textAlign   = 'center';
-      cx.textBaseline = 'middle';
-      /* white outline */
-      cx.strokeStyle = 'rgba(255,255,255,0.9)';
-      cx.lineWidth   = 5;
+      cx.save(); cx.globalAlpha = ft.alpha;
+      cx.font = `bold ${ft.sz}px "Comic Sans MS",cursive`;
+      cx.textAlign='center'; cx.textBaseline='middle';
+      cx.strokeStyle='rgba(255,255,255,0.9)'; cx.lineWidth=5;
       cx.strokeText(ft.text, ft.x, ft.y);
       cx.fillStyle = ft.color;
       cx.fillText(ft.text, ft.x, ft.y);
@@ -738,208 +780,179 @@ class Game {
     }
   }
 
-  /* ── CHARACTER ────────────────────────────────────────── */
-  _drawPlayer(p) {
-    const FLOOR_Y = this.FLOOR_Y;
-    const fx = p.x;
+  /* ── CHARACTER SPRITE (small top-down 3/4 view) ── */
+  _drawChar(p) {
+    const { x, y } = p;
+    /* sizes */
+    const HR  = 14;   /* head radius */
+    const BW  = 20;   /* body half-width */
+    const BH  = 22;   /* body height */
+    const LS  = 8;    /* leg half-separation */
+    const LH  = 14;   /* leg length */
+    const ARM = 18;   /* arm length */
 
-    /* walk animation */
-    const swing = p.moving ? Math.sin(p.walkPhase) : 0;
-    const bob   = p.moving ? Math.abs(Math.sin(p.walkPhase)) * 5 : 0;
+    const swing = p.moving ? Math.sin(p.walkPhase)*10 : 0;
+    const bob   = p.moving ? Math.abs(Math.sin(p.walkPhase))*2 : 0;
 
-    const baseY  = FLOOR_Y - bob;        /* floor contact point, lifts when walking */
-    const hipY   = baseY - BODY_BOT - 8; /* where legs join body */
+    /* shadow on floor */
+    cx.fillStyle = 'rgba(0,0,0,0.22)';
+    cx.beginPath(); cx.ellipse(x, y+LH+3, BW*0.9, 6, 0, 0, Math.PI*2); cx.fill();
 
-    /* ── shoes ── */
-    const lFootX = fx - 18 + swing * 22;
-    const rFootX = fx + 18 - swing * 22;
+    /* legs */
+    const legCol = p.isGirl ? '#CC2266' : '#1848B0';
+    cx.strokeStyle = legCol; cx.lineWidth = 9; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(x-LS, y+BH/2-bob); cx.lineTo(x-LS+swing*0.4, y+BH/2+LH-bob); cx.stroke();
+    cx.beginPath(); cx.moveTo(x+LS, y+BH/2-bob); cx.lineTo(x+LS-swing*0.4, y+BH/2+LH-bob); cx.stroke();
+
+    /* shoes */
     cx.fillStyle = '#222';
-    cx.beginPath(); cx.ellipse(lFootX, baseY - 2, 19, 8, swing * 0.2, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(rFootX, baseY - 2, 19, 8, -swing * 0.2, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(x-LS+swing*0.4, y+BH/2+LH-bob+3, 9, 5, swing*.04, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.ellipse(x+LS-swing*0.4, y+BH/2+LH-bob+3, 9, 5, -swing*.04, 0, Math.PI*2); cx.fill();
 
-    /* ── legs (drawn as thick lines) ── */
-    const legColor = p.isGirl ? '#CC2266' : '#1848B0';
-    cx.strokeStyle = legColor; cx.lineWidth = 20; cx.lineCap = 'round';
-    cx.beginPath(); cx.moveTo(fx - 12, hipY); cx.lineTo(lFootX, baseY - 6); cx.stroke();
-    cx.beginPath(); cx.moveTo(fx + 12, hipY); cx.lineTo(rFootX, baseY - 6); cx.stroke();
+    /* body */
+    const bodyG = cx.createLinearGradient(x-BW, y-BH/2-bob, x+BW, y+BH/2-bob);
+    bodyG.addColorStop(0, p.isGirl ? '#FF90C0' : '#6AAFFF');
+    bodyG.addColorStop(1, p.isGirl ? '#D01870' : '#1040C0');
+    cx.fillStyle = bodyG;
+    cx.beginPath(); cx.roundRect(x-BW, y-BH/2-bob, BW*2, BH, 7); cx.fill();
 
-    /* ── torso ── */
-    const torsoTop = baseY - BODY_TOP;
-    const torsoH   = BODY_TOP - BODY_BOT;
-    const shirt1 = p.isGirl ? '#FF75B0' : '#4A8FEC';
-    const shirt2 = p.isGirl ? '#E0207A' : '#1848B0';
-    const tg = cx.createLinearGradient(fx - 36, torsoTop, fx + 36, baseY - BODY_BOT);
-    tg.addColorStop(0, shirt1); tg.addColorStop(1, shirt2);
-    cx.fillStyle = tg;
-    cx.beginPath(); cx.roundRect(fx - 36, torsoTop, 72, torsoH, 10); cx.fill();
-
-    /* ── arms ── */
-    const armShoulderY = torsoTop + 18;
-    const armTipY      = baseY - ARM_Y;
-    cx.strokeStyle = shirt1; cx.lineWidth = 16; cx.lineCap = 'round';
-    cx.beginPath(); cx.moveTo(fx - 32, armShoulderY); cx.lineTo(fx - 62, armTipY); cx.stroke();
-    cx.beginPath(); cx.moveTo(fx + 32, armShoulderY); cx.lineTo(fx + 62, armTipY); cx.stroke();
+    /* arms */
+    cx.strokeStyle = p.isGirl ? '#FF90C0' : '#6AAFFF';
+    cx.lineWidth = 7; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(x-BW, y-BH/4-bob); cx.lineTo(x-BW-ARM+swing, y+2-bob); cx.stroke();
+    cx.beginPath(); cx.moveTo(x+BW, y-BH/4-bob); cx.lineTo(x+BW+ARM-swing, y+2-bob); cx.stroke();
     /* hands */
     cx.fillStyle = '#FFD0A0';
-    cx.beginPath(); cx.arc(fx - 62, armTipY, 11, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(fx + 62, armTipY, 11, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(x-BW-ARM+swing, y+2-bob, 5, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.arc(x+BW+ARM-swing, y+2-bob, 5, 0, Math.PI*2); cx.fill();
 
-    /* ── neck ── */
+    /* neck */
     cx.fillStyle = '#FFD0A0';
-    cx.fillRect(fx - 9, torsoTop - 10, 18, 14);
+    cx.fillRect(x-5, y-BH/2-HR*0.4-bob, 10, HR*0.6);
 
-    /* ── head (square-ish) ── */
-    const hcx = fx;
-    const hcy = torsoTop - HEAD_R - 6;
-    cx.fillStyle = p.isGirl ? '#FFDCB4' : '#FFE0B0';
-    cx.beginPath(); cx.roundRect(hcx - HEAD_R, hcy - HEAD_R, HEAD_R * 2, HEAD_R * 2 + 4, 16); cx.fill();
+    /* head */
+    const skinCol = p.isGirl ? '#FFDCB4' : '#FFE0B0';
+    cx.fillStyle = skinCol;
+    cx.beginPath(); cx.roundRect(x-HR, y-BH/2-HR*2-bob, HR*2, HR*2+3, 10); cx.fill();
 
-    /* ── hair ── */
+    /* hair */
     if (p.isGirl) {
-      /* Helcia — chestnut, side waves */
+      /* chestnut — top arc + side wisps */
       cx.fillStyle = '#9B5020';
-      cx.beginPath(); cx.ellipse(hcx, hcy + 4, HEAD_R + 10, HEAD_R + 12, 0, 0, Math.PI * 2); cx.fill();
-      cx.beginPath(); cx.roundRect(hcx - HEAD_R - 4, hcy - HEAD_R - 10, (HEAD_R + 4) * 2, HEAD_R * 0.75, 18); cx.fill();
-      /* face re-overlay */
-      cx.fillStyle = '#FFDCB4';
-      cx.beginPath(); cx.roundRect(hcx - HEAD_R, hcy - HEAD_R, HEAD_R * 2, HEAD_R * 2 + 4, 16); cx.fill();
-      /* fringe */
+      cx.beginPath(); cx.arc(x, y-BH/2-HR*1.6-bob, HR+4, Math.PI, 0); cx.fill();
+      /* re-draw face area */
+      cx.fillStyle = skinCol;
+      cx.beginPath(); cx.roundRect(x-HR, y-BH/2-HR*2-bob, HR*2, HR*2+3, 10); cx.fill();
+      /* side strands */
       cx.fillStyle = '#9B5020';
-      for (let fi = -1; fi <= 1; fi++) {
-        cx.beginPath(); cx.ellipse(hcx + fi * 13, hcy - HEAD_R + 5, 8, 12, fi * 0.15, 0, Math.PI * 2); cx.fill();
-      }
+      cx.beginPath(); cx.ellipse(x-HR-2, y-BH/2-HR*1.1-bob, 4, 9, 0, 0, Math.PI*2); cx.fill();
+      cx.beginPath(); cx.ellipse(x+HR+2, y-BH/2-HR*1.1-bob, 4, 9, 0, 0, Math.PI*2); cx.fill();
     } else {
-      /* Tadzio — golden mushroom cut */
+      /* golden mushroom cap */
       cx.fillStyle = '#D4B030';
-      cx.beginPath(); cx.arc(hcx, hcy - 2, HEAD_R + 9, Math.PI, 0); cx.fill();
-      cx.fillRect(hcx - HEAD_R - 8, hcy - HEAD_R + 8, (HEAD_R + 8) * 2, HEAD_R * 0.55);
+      cx.beginPath(); cx.arc(x, y-BH/2-HR*1.7-bob, HR+5, Math.PI, 0); cx.fill();
+      /* flat fringe */
+      cx.fillRect(x-HR-5, y-BH/2-HR*2-bob+2, (HR+5)*2, HR*0.6);
       /* ear flaps */
-      cx.beginPath(); cx.ellipse(hcx - HEAD_R - 3, hcy + 5, 9, 18, 0, 0, Math.PI * 2); cx.fill();
-      cx.beginPath(); cx.ellipse(hcx + HEAD_R + 3, hcy + 5, 9, 18, 0, 0, Math.PI * 2); cx.fill();
+      cx.beginPath(); cx.ellipse(x-HR-3, y-BH/2-HR*1.4-bob, 4, 8, 0, 0, Math.PI*2); cx.fill();
+      cx.beginPath(); cx.ellipse(x+HR+3, y-BH/2-HR*1.4-bob, 4, 8, 0, 0, Math.PI*2); cx.fill();
       /* face re-overlay */
-      cx.fillStyle = '#FFE0B0';
-      cx.beginPath(); cx.roundRect(hcx - HEAD_R, hcy - HEAD_R, HEAD_R * 2, HEAD_R * 2 + 4, 16); cx.fill();
+      cx.fillStyle = skinCol;
+      cx.beginPath(); cx.roundRect(x-HR, y-BH/2-HR*2-bob, HR*2, HR*2+3, 10); cx.fill();
     }
 
-    /* ── ears ── */
-    const skinColor = p.isGirl ? '#FFDCB4' : '#FFE0B0';
-    cx.fillStyle = skinColor;
-    cx.beginPath(); cx.ellipse(hcx - HEAD_R,     hcy + 4, 7, 10, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(hcx + HEAD_R,     hcy + 4, 7, 10, 0, 0, Math.PI * 2); cx.fill();
-
-    /* ── eyebrows ── */
-    cx.strokeStyle = p.isGirl ? '#7B3A10' : '#8B6A10';
-    cx.lineWidth = 3; cx.lineCap = 'round';
-    cx.beginPath(); cx.moveTo(hcx - 24, hcy - 10); cx.quadraticCurveTo(hcx - 12, hcy - 16, hcx - 2, hcy - 11); cx.stroke();
-    cx.beginPath(); cx.moveTo(hcx + 2,  hcy - 11); cx.quadraticCurveTo(hcx + 12, hcy - 16, hcx + 24, hcy - 10); cx.stroke();
-
-    /* ── eyes ── */
+    /* eyes */
+    const eyeY = y - BH/2 - HR*1.6 + 4 - bob;
     cx.fillStyle = '#fff';
-    cx.beginPath(); cx.ellipse(hcx - 11, hcy - 1, 9, 11, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(hcx + 11, hcy - 1, 9, 11, 0, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(x-6, eyeY, 4, 5, 0, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.ellipse(x+6, eyeY, 4, 5, 0, 0, Math.PI*2); cx.fill();
     cx.fillStyle = p.isGirl ? '#6B3510' : '#2A5CC8';
-    cx.beginPath(); cx.ellipse(hcx - 11, hcy,     6,  8, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(hcx + 11, hcy,     6,  8, 0, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(x-6, eyeY+1, 2.5, 3.5, 0, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.ellipse(x+6, eyeY+1, 2.5, 3.5, 0, 0, Math.PI*2); cx.fill();
     cx.fillStyle = '#111';
-    cx.beginPath(); cx.ellipse(hcx - 11, hcy + 1, 3,  4, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(hcx + 11, hcy + 1, 3,  4, 0, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(x-6, eyeY+1, 1.2, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.arc(x+6, eyeY+1, 1.2, 0, Math.PI*2); cx.fill();
+    /* highlight */
     cx.fillStyle = '#fff';
-    cx.beginPath(); cx.arc(hcx - 8,  hcy - 4, 2.2, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.arc(hcx + 14, hcy - 4, 2.2, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.arc(x-4.5, eyeY-1.5, 1, 0, Math.PI*2); cx.fill();
+    cx.beginPath(); cx.arc(x+7.5, eyeY-1.5, 1, 0, Math.PI*2); cx.fill();
 
-    /* ── nose ── */
+    /* nose */
     cx.fillStyle = '#EDAC80';
-    cx.beginPath(); cx.ellipse(hcx, hcy + 12, 5, 3.5, 0, 0, Math.PI * 2); cx.fill();
+    cx.beginPath(); cx.ellipse(x, eyeY+6, 3, 2, 0, 0, Math.PI*2); cx.fill();
 
-    /* ── cheeks ── */
-    cx.fillStyle = p.isGirl ? 'rgba(255,100,150,0.45)' : 'rgba(255,140,100,0.32)';
-    cx.beginPath(); cx.ellipse(hcx - 19, hcy + 13, 11, 8, 0, 0, Math.PI * 2); cx.fill();
-    cx.beginPath(); cx.ellipse(hcx + 19, hcy + 13, 11, 8, 0, 0, Math.PI * 2); cx.fill();
+    /* mouth */
+    cx.strokeStyle = '#B03030'; cx.lineWidth = 1.8; cx.lineCap = 'round';
+    cx.beginPath(); cx.arc(x, eyeY+11, p.isGirl?6:5, .1, Math.PI-.1); cx.stroke();
 
-    /* ── mouth ── */
-    if (p.isGirl) {
-      cx.strokeStyle = '#B03030'; cx.lineWidth = 2.5; cx.lineCap = 'round';
-      cx.beginPath(); cx.arc(hcx, hcy + 21, 11, 0.1, Math.PI - 0.1); cx.stroke();
-      cx.fillStyle = '#fff';
-      cx.beginPath(); cx.arc(hcx, hcy + 21, 11, 0.1, Math.PI - 0.1); cx.fill();
-    } else {
-      cx.strokeStyle = '#B03030'; cx.lineWidth = 2.5; cx.lineCap = 'round';
-      cx.beginPath(); cx.arc(hcx, hcy + 21, 9, 0.2, Math.PI - 0.2); cx.stroke();
-    }
-
-    /* ── name label ── */
-    const tagY = FLOOR_Y - CHAR_H - 10 - bob;
-    cx.font = "bold 17px 'Comic Sans MS', cursive";
-    cx.textAlign = 'center'; cx.textBaseline = 'bottom';
-    cx.strokeStyle = 'rgba(255,255,255,0.95)'; cx.lineWidth = 4;
-    cx.strokeText(p.name, fx, tagY);
+    /* name label above head */
+    const lblY = y - BH/2 - HR*2 - 10 - bob;
+    cx.font = "bold 13px 'Comic Sans MS',cursive";
+    cx.textAlign='center'; cx.textBaseline='bottom';
+    cx.strokeStyle='rgba(255,255,255,.9)'; cx.lineWidth=3;
+    cx.strokeText(p.name, x, lblY);
     cx.fillStyle = p.color;
-    cx.fillText(p.name, fx, tagY);
+    cx.fillText(p.name, x, lblY);
   }
 
-  /* ── HUD ──────────────────────────────────────────────── */
+  /* ── HUD ── */
   _drawHUD() {
-    const { W, CAB_H, helcia: h, tadzio: t, timeLeft } = this;
-    const bY = CAB_H + 8, bH = 52, bW = 210;
+    const { W, helcia: h, tadzio: t, timeLeft, py2, btH } = this;
+    const hudY = py2 + 8, hudH = btH - 14;
 
-    /* Helcia score */
-    cx.fillStyle = 'rgba(220,50,130,0.85)';
-    this._rr(8, bY, bW, bH, 10); cx.fill();
-    cx.fillStyle = '#fff'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
-    cx.font = "bold 16px 'Comic Sans MS', cursive";
-    cx.fillText(`👧 Helcia`, 18, bY + bH / 2 - 10);
-    cx.font = "bold 22px 'Comic Sans MS', cursive";
-    cx.fillText(`${h.score} pkt`, 18, bY + bH / 2 + 12);
+    /* Helcia */
+    cx.fillStyle = 'rgba(220,50,130,0.88)';
+    this._rr(8, hudY, 200, hudH, 8); cx.fill();
+    cx.fillStyle = '#fff'; cx.textAlign='left'; cx.textBaseline='middle';
+    cx.font = "bold 15px 'Comic Sans MS',cursive";
+    cx.fillText('👧 Helcia', 18, hudY + hudH/2 - 10);
+    cx.font = "bold 20px 'Comic Sans MS',cursive";
+    cx.fillText(`${h.score} pkt`, 18, hudY + hudH/2 + 10);
 
-    /* Tadzio score */
-    cx.fillStyle = 'rgba(40,100,220,0.85)';
-    this._rr(W - bW - 8, bY, bW, bH, 10); cx.fill();
-    cx.fillStyle = '#fff'; cx.textAlign = 'right';
-    cx.font = "bold 16px 'Comic Sans MS', cursive";
-    cx.fillText(`Tadzio 👦`, W - 18, bY + bH / 2 - 10);
-    cx.font = "bold 22px 'Comic Sans MS', cursive";
-    cx.fillText(`${t.score} pkt`, W - 18, bY + bH / 2 + 12);
+    /* Tadzio */
+    cx.fillStyle = 'rgba(40,100,220,0.88)';
+    this._rr(W-208, hudY, 200, hudH, 8); cx.fill();
+    cx.fillStyle = '#fff'; cx.textAlign='right';
+    cx.font = "bold 15px 'Comic Sans MS',cursive";
+    cx.fillText('Tadzio 👦', W-18, hudY + hudH/2 - 10);
+    cx.font = "bold 20px 'Comic Sans MS',cursive";
+    cx.fillText(`${t.score} pkt`, W-18, hudY + hudH/2 + 10);
 
     /* timer */
-    const ticking = timeLeft <= 10;
-    cx.fillStyle = ticking ? 'rgba(200,30,0,0.85)' : 'rgba(0,0,0,0.65)';
-    this._rr(W / 2 - 65, bY, 130, bH, 10); cx.fill();
+    const tick = timeLeft <= 10;
+    cx.fillStyle = tick ? 'rgba(200,30,0,0.9)' : 'rgba(0,0,0,0.7)';
+    this._rr(W/2-58, hudY, 116, hudH, 8); cx.fill();
     cx.fillStyle = '#fff';
-    cx.font = `bold ${ticking ? 30 : 22}px 'Comic Sans MS', cursive`;
-    cx.textAlign = 'center'; cx.textBaseline = 'middle';
-    cx.fillText(`⏱ ${timeLeft}s`, W / 2, bY + bH / 2);
+    cx.font = `bold ${tick?28:22}px 'Comic Sans MS',cursive`;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(`⏱ ${timeLeft}s`, W/2, hudY + hudH/2);
 
-    /* controls hint at bottom of cabinet area */
-    cx.font = '12px Arial, sans-serif';
-    cx.fillStyle = 'rgba(80,40,0,.65)';
-    cx.textAlign = 'left';  cx.textBaseline = 'bottom';
-    cx.fillText('A / D — Helcia', 10, CAB_H - 4);
-    cx.textAlign = 'right';
-    cx.fillText('Tadzio — ◄ ►', W - 10, CAB_H - 4);
+    /* controls */
+    cx.font = '11px Arial,sans-serif'; cx.fillStyle='rgba(80,40,0,.7)';
+    cx.textAlign='left';  cx.textBaseline='top';
+    cx.fillText('WASD — Helcia', 10, this.bkH + 4);
+    cx.textAlign='right';
+    cx.fillText('Tadzio — ◄▲▼►', W-10, this.bkH + 4);
   }
 
-  /* ── UTILS ────────────────────────────────────────────── */
   _rr(x, y, w, h, r) {
     cx.beginPath();
-    cx.moveTo(x + r, y);
-    cx.lineTo(x + w - r, y); cx.arcTo(x + w, y,     x + w, y + r,     r);
-    cx.lineTo(x + w, y + h - r); cx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    cx.lineTo(x + r, y + h); cx.arcTo(x,     y + h, x,     y + h - r, r);
-    cx.lineTo(x, y + r); cx.arcTo(x,     y,     x + r,     y,         r);
+    cx.moveTo(x+r,y); cx.lineTo(x+w-r,y); cx.arcTo(x+w,y,x+w,y+r,r);
+    cx.lineTo(x+w,y+h-r); cx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    cx.lineTo(x+r,y+h); cx.arcTo(x,y+h,x,y+h-r,r);
+    cx.lineTo(x,y+r); cx.arcTo(x,y,x+r,y,r);
     cx.closePath();
   }
 }
 
 /* ─── WIRING ──────────────────────────────────────────── */
 let currentGame = null;
-
 function startGame() {
   music.start();
   showScreen('game-screen');
   if (currentGame) currentGame.destroy();
   currentGame = new Game();
 }
-
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('playAgainBtn').addEventListener('click', startGame);
 </script>
